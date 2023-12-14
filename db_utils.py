@@ -7,6 +7,7 @@ from sklearn.impute import SimpleImputer
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import statsmodels.api as sm
 
 """All the modules that will be used"""
 
@@ -94,7 +95,6 @@ class DataFrameInfo:
         if not numeric_df.empty:
             skewed_columns = numeric_df.apply(lambda x: x.skew()).abs() > skewness_threshold
             
-            # Use the original DataFrame columns to avoid indexing issues
             selected_columns = [col for col in df.columns if col in numeric_columns and col in skewed_columns.index and skewed_columns[col]]
             return selected_columns
         else:
@@ -179,16 +179,27 @@ class Plotter:
         g = g.map(sns.histplot, "value", kde=True)
         plt.show()
 
-    def qq_plot(cols):
+    @staticmethod
+    def qq_plot(df, cols):
         remainder = 1 if len(cols) % 4 != 0 else 0
         rows = int(len(cols) / 4 + remainder)
 
         fig, axes = plt.subplots(
             ncols=4, nrows=rows, sharex=False, figsize=(12, 6))
+        outlier_indices = set()
+
         for col, ax in zip(cols, np.ravel(axes)):
             sm.qqplot(df[col], line='s', ax=ax, fit=True)
             ax.set_title(f'{col} QQ Plot')
-        pyplot.tight_layout()
+            
+            z_scores = sm.OLS(df[col], sm.add_constant(np.arange(len(df)))).fit().resid / np.std(df[col])
+            current_outliers = np.where(np.abs(z_scores) > 3)[0]
+            
+            outlier_indices.update(current_outliers)
+
+        plt.tight_layout()
+
+        return list(outlier_indices)
 
 class DataFrameTransform:
     @staticmethod
@@ -209,6 +220,21 @@ class DataFrameTransform:
         for column in skewed_columns:
             df[column] = np.log1p(df[column])  
         return df
+
+    @staticmethod
+    def remove_outliers_qqplot(df, cols):
+        outliers = set()
+
+        for col in cols:
+            z_scores = sm.OLS(df[col], sm.add_constant(np.arange(len(df)))).fit().resid / np.std(df[col])
+
+            outlier_indices = np.where(np.abs(z_scores) > 3)[0]
+ 
+            outliers.update(outlier_indices)
+
+        df_no_outliers = df.drop(list(outliers))
+        
+        return df_no_outliers
 
 
 def identify_skewed_columns(df, skewness_threshold=0.5):
