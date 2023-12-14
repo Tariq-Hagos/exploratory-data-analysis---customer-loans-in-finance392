@@ -1,4 +1,5 @@
 #db_utils.py
+# seperate all the functions
 import yaml
 from sqlalchemy import create_engine
 import pandas as pd
@@ -154,14 +155,14 @@ class DataTransform:
         return df
 
 class Plotter:
-    @staticmethod
+
     def plot_null_distribution(df):
         plt.figure(figsize=(12, 8))
         sns.heatmap(df.isnull(), cmap='viridis', cbar=False, yticklabels=False)
         plt.title("Null Values Distribution")
         plt.show()
 
-    @staticmethod
+
     def visualize_skewness(df, skewed_columns):
         plt.figure(figsize=(12, 8))
         for column in skewed_columns:
@@ -170,6 +171,24 @@ class Plotter:
         plt.legend()
         plt.show()
 
+    def multi_hist_plot(df, num_cols):
+        sns.set(font_scale=0.7)
+        f = pd.melt(df, value_vars=num_cols)
+        g = sns.FacetGrid(f, col="variable", col_wrap=4,
+                          sharex=False, sharey=False)
+        g = g.map(sns.histplot, "value", kde=True)
+        plt.show()
+
+    def qq_plot(cols):
+        remainder = 1 if len(cols) % 4 != 0 else 0
+        rows = int(len(cols) / 4 + remainder)
+
+        fig, axes = plt.subplots(
+            ncols=4, nrows=rows, sharex=False, figsize=(12, 6))
+        for col, ax in zip(cols, np.ravel(axes)):
+            sm.qqplot(df[col], line='s', ax=ax, fit=True)
+            ax.set_title(f'{col} QQ Plot')
+        pyplot.tight_layout()
 
 class DataFrameTransform:
     @staticmethod
