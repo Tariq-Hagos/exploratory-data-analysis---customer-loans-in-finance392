@@ -1,5 +1,5 @@
-#db_utils.py
-# seperate all the functions
+# db_utils.py
+# seperate all the functions into different files this is way too long
 import yaml
 from sqlalchemy import create_engine
 import pandas as pd
@@ -149,7 +149,6 @@ class DataTransform:
     @staticmethod
     def transform_skewed_columns(df, skewed_columns):
         for column in skewed_columns:
-            # Check if the column exists in the DataFrame
             if column in df.columns:
                 df[column] = np.log1p(df[column])
         return df
